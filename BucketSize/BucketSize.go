@@ -48,7 +48,6 @@ func listObjects(bucket string, region string) ([]*s3.Object, error) {
 	allObjects = append(allObjects, result.Contents...)
 
 	for *result.IsTruncated {
-		// log.Println(result)
 		log.Println("Last key:", *result.Contents[len(result.Contents)-1].Key)
 
 		input = &s3.ListObjectsInput{
