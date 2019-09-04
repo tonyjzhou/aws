@@ -86,6 +86,8 @@ func ReadableByte(b int64) string {
 
 // AllObjects returns all the S3 objects in the bucket of the region
 func AllObjects(bucket BucketName, region Region) ([]*s3.Object, error) {
+	log.Printf("Retrieving %s from %s\n", bucket, region)
+
 	var allObjects []*s3.Object
 
 	svc := s3.New(session.New(), &aws.Config{
@@ -103,7 +105,7 @@ func AllObjects(bucket BucketName, region Region) ([]*s3.Object, error) {
 	allObjects = append(allObjects, result.Contents...)
 
 	for *result.IsTruncated {
-		log.Println("Last key:", *result.Contents[len(result.Contents)-1].Key)
+		// log.Println("Last key:", *result.Contents[len(result.Contents)-1].Key)
 
 		input = &s3.ListObjectsInput{
 			Bucket: aws.String(string(bucket)),
