@@ -14,7 +14,7 @@ import (
 // https://docs.aws.amazon.com/sdk-for-go/api/service/s3/#example_S3_listBuckets_shared00
 //
 func main() {
-	buckets, err := listBuckets()
+	buckets, err := listBuckets("us-west-1")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -37,9 +37,9 @@ func bucketToName(b *s3.Bucket) string {
 	return *(b.Name)
 }
 
-func listBuckets() ([]string, error) {
+func listBuckets(region string) ([]string, error) {
 	svc := s3.New(session.New(), &aws.Config{
-		Region: aws.String("us-west-1"), // US West (N. California)
+		Region: aws.String(region), // US West (N. California)
 	})
 	input := &s3.ListBucketsInput{}
 
