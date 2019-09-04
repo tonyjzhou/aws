@@ -36,7 +36,54 @@ func (b Bucket) String() string {
 
 // https://docs.aws.amazon.com/sdk-for-go/api/service/s3/#S3.ListObjects
 func main() {
-	log.Println(Summarize("circleup-airflow", "us-west-1"))
+	const region = "us-west-1"
+
+	bucketNames, err := AllBuckets(region)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	log.Printf("Processing %d buckets\n", len(bucketNames))
+	buckets := []Bucket{}
+	for i, bn := range bucketNames {
+		b := Summarize(BucketName(bn), region)
+		log.Printf("%d) %s\n", i, b)
+		buckets = append(buckets, b)
+	}
+
+	log.Printf(
+		"Total Size of all %d buckets is: %s\n",
+		len(buckets),
+		ReadableByte(totalBucketsSize(buckets)),
+	)
+}
+
+func mapSlice(vs []*s3.Bucket, f func(*s3.Bucket) string) []string {
+	vsm := make([]string, len(vs))
+	for i, v := range vs {
+		vsm[i] = f(v)
+	}
+	return vsm
+}
+
+func bucketToName(b *s3.Bucket) string {
+	return *(b.Name)
+}
+
+// AllBuckets fetches all the buckets in the region
+func AllBuckets(region Region) ([]string, error) {
+	svc := s3.New(session.New(), &aws.Config{
+		Region: aws.String(string(region)),
+	})
+	input := &s3.ListBucketsInput{}
+
+	result, err := svc.ListBuckets(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapSlice(result.Buckets, bucketToName), nil
 }
 
 // Summarize retrieve a summary of the bucket information
@@ -51,23 +98,30 @@ func Summarize(name BucketName, region Region) Bucket {
 	)
 
 	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+		return bucket
 	}
 
-	bucket.size = TotalSize(objects)
+	bucket.size = totalSizeObjects(objects)
 	bucket.objects = len(objects)
 
 	return bucket
 }
 
-// TotalSize sums up the total size of all the objects
-func TotalSize(objects []*s3.Object) int64 {
-	var totalSize int64
-	for _, o := range objects {
-		totalSize += *o.Size
+func totalBucketsSize(buckets []Bucket) int64 {
+	var sum int64
+	for _, b := range buckets {
+		sum += b.size
 	}
-	return totalSize
+	return sum
+}
+
+// totalSizeObjects sums up the total size of all the objects
+func totalSizeObjects(objects []*s3.Object) int64 {
+	var sum int64
+	for _, o := range objects {
+		sum += *o.Size
+	}
+	return sum
 }
 
 // ReadableByte converts a size in bytes to a human-readable format
@@ -86,7 +140,7 @@ func ReadableByte(b int64) string {
 
 // AllObjects returns all the S3 objects in the bucket of the region
 func AllObjects(bucket BucketName, region Region) ([]*s3.Object, error) {
-	log.Printf("Retrieving %s from %s\n", bucket, region)
+	log.Printf("Retrieving '%s' from '%s'\n", bucket, region)
 
 	var allObjects []*s3.Object
 

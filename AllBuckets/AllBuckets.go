@@ -10,11 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+// Region represents the region of S3
+type Region string
+
 // Using the aws API to programmatically find out the buckets we have
 // https://docs.aws.amazon.com/sdk-for-go/api/service/s3/#example_S3_listBuckets_shared00
 //
 func main() {
-	buckets, err := listBuckets("us-west-1")
+	buckets, err := AllBuckets("us-west-1")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -37,9 +40,10 @@ func bucketToName(b *s3.Bucket) string {
 	return *(b.Name)
 }
 
-func listBuckets(region string) ([]string, error) {
+// AllBuckets fetches all the buckets in the region
+func AllBuckets(region Region) ([]string, error) {
 	svc := s3.New(session.New(), &aws.Config{
-		Region: aws.String(region), // US West (N. California)
+		Region: aws.String(string(region)), // US West (N. California)
 	})
 	input := &s3.ListBucketsInput{}
 
